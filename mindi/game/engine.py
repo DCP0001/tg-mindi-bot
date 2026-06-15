@@ -201,25 +201,53 @@ class MindiGame:
             is_trump_revealed=self.is_trump_revealed
         )
         
-        # Register trick win and collect cards immediately
-        trick_cards = [play["card"] for play in self.current_trick]
+        # Register trick win
         winner_team = 1 if trick_winner_seat in [0, 2] else 2
         if winner_team == 1:
             self.team1_tricks += 1
         else:
             self.team2_tricks += 1
 
-        # Add Mindis in this trick to the winner's team
-        mindis_in_trick = sum(c.value for c in trick_cards)
-        if winner_team == 1:
-            self.team1_mindis += mindis_in_trick
+        # Add this trick's cards to the center pile
+        trick_cards = [play["card"] for play in self.current_trick]
+        self.center_pile.extend(trick_cards)
+
+        collected = False
+        collected_cards = []
+
+        is_last_trick = (len(self.tricks_history) == 12)  # Since tricks_history is appended below, 12 means this is the 13th trick
+
+        if is_last_trick:
+            # Winner of the final trick collects all remaining cards in the center pile
+            collected = True
+            collected_cards = [c.to_string() for c in self.center_pile]
+            mindis_collected = sum(c.value for c in self.center_pile)
+            if winner_team == 1:
+                self.team1_mindis += mindis_collected
+            else:
+                self.team2_mindis += mindis_collected
+            self.center_pile = []
+            self.last_trick_winner = None
         else:
-            self.team2_mindis += mindis_in_trick
-            
-        collected = True
-        collected_cards = [c.to_string() for c in trick_cards]
-        self.center_pile = []
-        self.last_trick_winner = None
+            if self.last_trick_winner is not None:
+                last_winner_team = 1 if self.last_trick_winner in [0, 2] else 2
+                if winner_team == last_winner_team:
+                    # Consecutive win! Winner collects the accumulated center pile
+                    collected = True
+                    collected_cards = [c.to_string() for c in self.center_pile]
+                    mindis_collected = sum(c.value for c in self.center_pile)
+                    if winner_team == 1:
+                        self.team1_mindis += mindis_collected
+                    else:
+                        self.team2_mindis += mindis_collected
+                    self.center_pile = []
+                    self.last_trick_winner = trick_winner_seat
+                else:
+                    # Alternating win. Pile accumulates, update last winner.
+                    self.last_trick_winner = trick_winner_seat
+            else:
+                # First trick of the game. Pile accumulates, update last winner.
+                self.last_trick_winner = trick_winner_seat
 
         # Save trick to history
         self.tricks_history.append({

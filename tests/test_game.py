@@ -110,7 +110,7 @@ def test_game_result_calculation():
     assert res["winner_team"] == 2
     assert res["is_coat"] is False
 
-def test_immediate_trick_collection():
+def test_consecutive_trick_collection():
     player_ids = [101, 102, 103, 104]
     player_names = ["Alice", "Bob", "Charlie", "David"]
     
@@ -134,7 +134,7 @@ def test_immediate_trick_collection():
     
     # Trick 1: P1 leads ♠K, P2 plays ♠10, P3 plays ♠8, P0 plays ♠A
     # Plays: P1 (♠K), P2 (♠10), P3 (♠8), P0 (♠A)
-    # Winner: P0 (♠A)
+    # Winner: P0 (Team 1)
     res1 = game.play_card(102, Card(Suit.SPADES, Rank.KING))
     assert res1["success"] is True
     res2 = game.play_card(103, Card(Suit.SPADES, Rank.TEN))
@@ -145,20 +145,21 @@ def test_immediate_trick_collection():
     assert res4["success"] is True
     assert res4["next_state"] == "trick_complete"
     assert res4["trick_winner"] == 0
-    assert res4["collected"] is True
+    assert res4["collected"] is False  # First trick of game - not collected yet
     
-    # In immediate collection, center pile is cleared and points are awarded immediately
-    assert len(game.center_pile) == 0
-    assert game.team1_mindis == 1  # ♠10 was in Trick 1, collected by P0's team (Team 1)
+    # Under Dehla Pakad, center pile accumulates cards
+    assert len(game.center_pile) == 4
+    assert game.team1_mindis == 0
     assert game.team2_mindis == 0
+    assert game.last_trick_winner == 0
     
-    # Trick 2: Next turn is P0.
+    # Trick 2: Next turn is P0 (Team 1).
     # Hand 0: ♠Q
     # Hand 1: ♠J
     # Hand 2: ♠9
     # Hand 3: ♠7
     # P0 leads ♠Q, P1 plays ♠J, P2 plays ♠9, P3 plays ♠7
-    # Winner: P0 (♠Q)
+    # Winner: P0 (Team 1)
     assert game.current_turn == 0
     game.play_card(101, Card(Suit.SPADES, Rank.QUEEN))
     game.play_card(102, Card(Suit.SPADES, Rank.JACK))
@@ -167,11 +168,11 @@ def test_immediate_trick_collection():
     
     assert event["next_state"] == "trick_complete"
     assert event["trick_winner"] == 0
-    assert event["collected"] is True
+    assert event["collected"] is True  # Team 1 wins consecutively - collected!
     
-    # Center pile remains empty
+    # Center pile is cleared
     assert len(game.center_pile) == 0
-    # No new Mindis played, should still be 1
+    # Team 1 collects both tricks (including the ♠10 from Trick 1)
     assert game.team1_mindis == 1
     assert game.team2_mindis == 0
 

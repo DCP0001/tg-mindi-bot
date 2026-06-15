@@ -191,6 +191,10 @@ async def update_group_game_message(game: MindiGame, trick_result_msg: str = "")
     try:
         if game.group_msg_id:
             try:
+                await bot.unpin_chat_message(chat_id=game.group_chat_id, message_id=game.group_msg_id)
+            except Exception:
+                pass
+            try:
                 await bot.delete_messages(chat_id=game.group_chat_id, message_ids=game.group_msg_id)
             except Exception:
                 pass
@@ -201,6 +205,10 @@ async def update_group_game_message(game: MindiGame, trick_result_msg: str = "")
         )
         game.group_msg_id = msg.id
         await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+        try:
+            await bot.pin_chat_message(chat_id=game.group_chat_id, message_id=msg.id, disable_notification=True)
+        except Exception as pe:
+            logger.warning(f"Failed to pin active game message: {pe}")
     except Exception as e:
         logger.error(f"Failed to send group message: {e}")
 
@@ -306,6 +314,11 @@ async def process_game_completion(game: MindiGame, result: dict):
     
     if game.group_chat_id:
         try:
+            if game.group_msg_id:
+                try:
+                    await bot.unpin_chat_message(chat_id=game.group_chat_id, message_id=game.group_msg_id)
+                except Exception:
+                    pass
             await bot.send_message(chat_id=game.group_chat_id, text=summary, reply_markup=keyboard)
         except Exception:
             pass
@@ -848,6 +861,10 @@ async def on_stop_game_command(client, message):
             
     # 4. Delete the game board message to clean up the chat
     if game.group_msg_id:
+        try:
+            await bot.unpin_chat_message(chat_id=group_chat_id, message_id=game.group_msg_id)
+        except Exception:
+            pass
         try:
             await bot.delete_messages(chat_id=group_chat_id, message_ids=game.group_msg_id)
         except Exception as e:

@@ -72,6 +72,10 @@ async def initialize_and_start_game(match_id: str, players_info: list, mode: str
                 text=f"🎮 **Mindi Match {match_id} Starting!**\nMode: `{mode.upper()}` | Trump: `{trump_mode.upper()}`\nDealer: {dealer_mention}\n\n*Dealing cards...*"
             )
             game.group_msg_id = start_msg.id
+            try:
+                await bot.pin_chat_message(chat_id=group_chat_id, message_id=start_msg.id, disable_notification=True)
+            except Exception as pe:
+                logger.warning(f"Failed to pin start message: {pe}")
         except Exception as e:
             logger.error(f"Failed to send start message to group {group_chat_id}: {e}")
             
