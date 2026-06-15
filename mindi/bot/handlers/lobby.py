@@ -193,7 +193,11 @@ async def on_create_table_command(client, message):
         f"{format_lobby_players(lobby_data['players'])}"
     )
     
-    await message.reply_text(text=lobby_text, reply_markup=get_lobby_keyboard(lobby_data))
+    lobby_msg = await message.reply_text(text=lobby_text, reply_markup=get_lobby_keyboard(lobby_data))
+    try:
+        await bot.pin_chat_message(chat_id=group_chat_id, message_id=lobby_msg.id, disable_notification=True)
+    except Exception as pe:
+        logger.warning(f"Failed to pin lobby message: {pe}")
 
 
 @bot.on_callback_query(filters.regex(r"^lobby:join:(.+)$"))
@@ -249,6 +253,10 @@ async def on_leave_lobby(client, callback_query: CallbackQuery):
     if not lobby_data["players"]:
         # If last player left, delete the lobby
         await delete_cache(f"mindi:lobby:{lobby_id}")
+        try:
+            await bot.unpin_chat_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.id)
+        except Exception:
+            pass
         await callback_query.message.edit_text("Lobby closed because all players left.")
         return
         
@@ -327,6 +335,10 @@ async def on_start_lobby(client, callback_query: CallbackQuery):
     
     group_chat_id = lobby_data.get("group_chat_id")
     if group_chat_id:
+        try:
+            await bot.unpin_chat_message(chat_id=group_chat_id, message_id=callback_query.message.id)
+        except Exception:
+            pass
         try:
             await callback_query.message.delete()
         except Exception:
