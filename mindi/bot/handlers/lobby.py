@@ -65,9 +65,11 @@ async def initialize_and_start_game(match_id: str, players_info: list, mode: str
     # If running in a Telegram group, send active game message to group
     if group_chat_id:
         try:
+            dealer_id = player_ids[dealer_idx]
+            dealer_mention = f"[{player_names[dealer_idx]}](tg://user?id={dealer_id})" if dealer_id > 0 else f"**{player_names[dealer_idx]}**"
             start_msg = await bot.send_message(
                 chat_id=group_chat_id,
-                text=f"🎮 **Mindi Match {match_id} Starting!**\nMode: `{mode.upper()}` | Trump: `{trump_mode.upper()}`\nDealer: **{player_names[dealer_idx]}**\n\n*Dealing cards...*"
+                text=f"🎮 **Mindi Match {match_id} Starting!**\nMode: `{mode.upper()}` | Trump: `{trump_mode.upper()}`\nDealer: {dealer_mention}\n\n*Dealing cards...*"
             )
             game.group_msg_id = start_msg.id
         except Exception as e:
@@ -117,12 +119,13 @@ async def initialize_and_start_game(match_id: str, players_info: list, mode: str
         
         if group_chat_id:
             try:
+                selector_mention = f"[{selector_name}](tg://user?id={selector_id})" if selector_id > 0 else f"**{selector_name}**"
                 await bot.send_message(
                     chat_id=group_chat_id,
                     text=(
                         f"🤫 **Hidden Hukam Mode!**\n"
-                        f"Dealer's partner **{selector_name}** must now select the Hidden Hukam card!\n"
-                        f"👉 **{selector_name}**: Click the inline button below to choose your card privately."
+                        f"Dealer's partner {selector_mention} must now select the Hidden Hukam card!\n"
+                        f"👉 {selector_mention}: Click the inline button below to choose your card privately."
                     ),
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(

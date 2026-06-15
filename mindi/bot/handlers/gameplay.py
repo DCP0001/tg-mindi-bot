@@ -165,7 +165,9 @@ async def update_group_game_message(game: MindiGame, trick_result_msg: str = "")
     markup = None
     if game.state == GameState.PLAYING:
         current_player = game.player_names[game.current_turn]
-        status_text += f"🚨 Turn: **{current_player}** (Click the button below to choose your card privately):"
+        current_player_id = game.player_ids[game.current_turn]
+        current_player_mention = f"[{current_player}](tg://user?id={current_player_id})" if current_player_id > 0 else f"**{current_player}**"
+        status_text += f"🚨 Turn: {current_player_mention} (Click the button below to choose your card privately):"
         
         # Determine if we should show the [ 🔓 Reveal Hidden Hukam ] button
         led_suit = game.get_led_suit()
