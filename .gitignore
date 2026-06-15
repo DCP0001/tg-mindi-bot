@@ -1,0 +1,25 @@
+# Secrets and local config
+.env
+mindi_bot.session
+mindi_bot.session-journal
+mindi_bot_test.session
+mindi_bot_test.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+cards_cache/
+.venv/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
