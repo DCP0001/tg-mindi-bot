@@ -53,24 +53,15 @@ By default, OCI blocks all ports except SSH (22). To allow HTTP traffic on port 
 
 ## Part 3: Push Your Code to GitHub
 
-Make sure your local repository is pushed to GitHub.
+Your local repository is already initialized and has been pushed to GitHub:
+`https://github.com/DCP0001/tg-mindi-bot.git`
 
-1. Create a repository on GitHub (e.g. named `tg-mindi-bot`).
-2. Run these commands in your local project folder (`c:\Users\dhruv\OneDrive\Desktop\TG Mindi bot`) using Git Bash or Command Prompt:
-   ```bash
-   git init
-   # Create a .gitignore file if you don't have one to ignore secrets
-   echo ".env" >> .gitignore
-   echo "__pycache__/" >> .gitignore
-   echo "*.session" >> .gitignore
-   echo "*.session-journal" >> .gitignore
-   
-   git add .
-   git commit -m "initial commit"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_GITHUB_USERNAME/tg-mindi-bot.git
-   git push -u origin main
-   ```
+If you make new changes locally and want to push them to GitHub, run:
+```bash
+git add .
+git commit -m "Describe your changes"
+git push
+```
 
 ---
 
@@ -93,9 +84,9 @@ Once logged into the Ubuntu VM, install Git and clone your code:
 ```bash
 sudo apt update && sudo apt install -y git
 # If repository is PUBLIC:
-git clone https://github.com/YOUR_GITHUB_USERNAME/tg-mindi-bot.git
+git clone https://github.com/DCP0001/tg-mindi-bot.git
 # If repository is PRIVATE, clone using your Github Username and Personal Access Token (PAT):
-# git clone https://USERNAME:TOKEN@github.com/YOUR_GITHUB_USERNAME/tg-mindi-bot.git
+# git clone https://DCP0001:YOUR_PAT_TOKEN@github.com/DCP0001/tg-mindi-bot.git
 
 cd tg-mindi-bot
 ```
