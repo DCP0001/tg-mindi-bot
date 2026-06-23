@@ -42,14 +42,16 @@ sudo systemctl start docker
 echo "[6/7] Adding user '$USER' to the docker group..."
 sudo usermod -aG docker $USER
 
-# 7. Configure firewall for OCI (Crucial Step)
+# 7. Configure firewall for OCI/AWS (Crucial Step)
 # OCI Ubuntu VMs block all ports except 22 by default at the OS level.
 echo "[7/7] Configuring VM firewall to allow port 8000 (FastAPI)..."
 if command -v iptables &> /dev/null; then
     # Insert rule to allow incoming TCP traffic on port 8000
     # OCI Ubuntu instances usually have a reject rule at line 6 or later.
     # We insert our accept rule at index 6 to ensure it runs before any reject rules.
-    sudo iptables -I INPUT 6 -p tcp --dport 8000 -m state --state NEW,ESTABLISHED -j ACCEPT
+    # If index 6 does not exist (e.g. on AWS EC2 standard AMIs), fallback to index 1.
+    sudo iptables -I INPUT 6 -p tcp --dport 8000 -m state --state NEW,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    sudo iptables -I INPUT 1 -p tcp --dport 8000 -m state --state NEW,ESTABLISHED -j ACCEPT
     
     # Save rules so they persist across reboots
     if [ -f /etc/iptables/rules.v4 ]; then
