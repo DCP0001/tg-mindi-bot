@@ -436,7 +436,10 @@ async def check_and_run_ai_turns(game: MindiGame):
                                 text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
                             )
                             game.group_msg_id = msg.id
-                            await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+                        
+                        # Set to None so the next trick starts on a new message
+                        game.group_msg_id = None
+                        await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
                     except Exception:
                         pass
                 else:
@@ -746,7 +749,10 @@ async def on_play_command_group(client, message):
                         text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
                     )
                     game.group_msg_id = msg.id
-                    await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+                
+                # Set to None so the next trick starts on a new message
+                game.group_msg_id = None
+                await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
             except Exception:
                 pass
         else:
@@ -874,16 +880,16 @@ async def on_stop_game_command(client, message):
             await delete_cache(f"mindi:player_game:{pid}")
             await delete_cache(f"mindi:player_hand_msg:{pid}")
             
-    # 4. Delete the game board message to clean up the chat
+    # 4. Edit the game board message to show termination
     if game.group_msg_id:
         try:
-            await bot.unpin_chat_message(chat_id=group_chat_id, message_id=game.group_msg_id)
-        except Exception:
-            pass
-        try:
-            await bot.delete_messages(chat_id=group_chat_id, message_ids=game.group_msg_id)
+            await bot.edit_message_text(
+                chat_id=group_chat_id,
+                message_id=game.group_msg_id,
+                text=f"🛑 **Match terminated!**\nThe current game has been aborted by **{player_name}**."
+            )
         except Exception as e:
-            logger.warning(f"Failed to delete aborted board message: {e}")
+            logger.warning(f"Failed to update aborted board message: {e}")
             
     # 5. Remove the game state from cache
     await delete_cache(f"mindi:game:{match_id}")
