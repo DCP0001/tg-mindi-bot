@@ -210,6 +210,8 @@ async def update_group_game_message(game: MindiGame, trick_result_msg: str = "")
             )
             game.group_msg_id = msg.id
             await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+    except Exception as e:
+        logger.error(f"Failed to update group game message: {e}")
 
 async def update_game_ui(game: MindiGame, trick_result_msg: str = ""):
     """Updates both the group game board or all individual player private hand keyboards in DM."""
