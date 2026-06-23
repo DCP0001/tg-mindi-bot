@@ -55,7 +55,8 @@ async def lifespan(app: FastAPI):
             await bot.set_bot_commands([
                 BotCommand("start", "Start the bot and open the main menu"),
                 BotCommand("new", "Create a new Mindi game lobby in a group"),
-                BotCommand("stop", "Abort the current active game in a group")
+                BotCommand("stop", "Abort the current active game in a group"),
+                BotCommand("active", "Broadcast active status to all channels (Admins only)")
             ])
             logger.info("Bot commands registered successfully in Telegram.")
         except Exception as e:

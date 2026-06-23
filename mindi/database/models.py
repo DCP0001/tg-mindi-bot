@@ -75,3 +75,12 @@ class MatchPlayer(Base):
     # Relationships
     match = relationship("Match", back_populates="players")
     user = relationship("User", back_populates="match_participations")
+
+
+class TrackedChat(Base):
+    __tablename__ = "tracked_chats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    chat_type = Column(String(50), nullable=False)
+    title = Column(String(255), nullable=True)

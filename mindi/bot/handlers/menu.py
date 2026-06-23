@@ -1,11 +1,13 @@
+import os
+import asyncio
 import logging
 from pyrogram import filters
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.enums import ChatType
-from sqlalchemy import select, desc
+from pyrogram.enums import ChatType, ChatMemberStatus
+from sqlalchemy import select, desc, delete
 from mindi.bot.bot import bot
 from mindi.database.db import AsyncSessionLocal
-from mindi.database.models import User
+from mindi.database.models import User, TrackedChat
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +49,42 @@ async def get_or_create_user(session, tg_user) -> User:
         await session.commit()
     return db_user
 
+async def track_chat_id(session, chat):
+    """Upsert chat details into tracked_chats table."""
+    if chat.type in [ChatType.GROUP, ChatType.SUPERGROUP, ChatType.CHANNEL]:
+        stmt = select(TrackedChat).filter(TrackedChat.chat_id == chat.id)
+        result = await session.execute(stmt)
+        db_chat = result.scalars().first()
+        if not db_chat:
+            db_chat = TrackedChat(
+                chat_id=chat.id,
+                chat_type=str(chat.type),
+                title=chat.title
+            )
+            session.add(db_chat)
+            await session.commit()
+            logger.info(f"Started tracking new chat: {chat.title} ({chat.id})")
+
 @bot.on_message(group=-1)
 async def log_all_messages(client, message: Message):
     logger.info(f"GLOBAL LOGGER: Received message: chat_id={message.chat.id}, chat_type={message.chat.type}, text={message.text}")
+    if message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP, ChatType.CHANNEL]:
+        try:
+            async with AsyncSessionLocal() as session:
+                await track_chat_id(session, message.chat)
+        except Exception as e:
+            logger.error(f"Error tracking chat {message.chat.id}: {e}")
+    message.continue_propagation()
+
+@bot.on_channel_post(group=-1)
+async def log_all_channel_posts(client, message: Message):
+    logger.info(f"GLOBAL LOGGER: Received channel post: chat_id={message.chat.id}, text={message.text}")
+    if message.chat.type == ChatType.CHANNEL:
+        try:
+            async with AsyncSessionLocal() as session:
+                await track_chat_id(session, message.chat)
+        except Exception as e:
+            logger.error(f"Error tracking channel {message.chat.id}: {e}")
     message.continue_propagation()
 
 @bot.on_callback_query(group=-1)
@@ -179,3 +214,77 @@ async def on_help_command(client, message: Message):
         )
     else:
         await message.reply_text(text=help_text)
+
+
+async def is_admin(client, chat_id, user_id) -> bool:
+    """Check if the user is an admin or owner of the chat/bot."""
+    owner_id = os.getenv("BOT_OWNER_ID", "1315149993")
+    if str(user_id) == str(owner_id):
+        return True
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        return member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR]
+    except Exception:
+        return False
+
+
+@bot.on_message(filters.command("active"))
+@bot.on_channel_post(filters.command("active"))
+async def on_active_broadcast_command(client, message: Message):
+    # 1. Permission check
+    allowed = False
+    if message.chat.type == ChatType.CHANNEL:
+        # In channels, only admins can post
+        allowed = True
+    elif message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+        # Check if sender is group admin or bot owner
+        allowed = await is_admin(client, message.chat.id, message.from_user.id)
+    elif message.chat.type == ChatType.PRIVATE:
+        # Check if sender is bot owner
+        owner_id = os.getenv("BOT_OWNER_ID", "1315149993")
+        allowed = (str(message.from_user.id) == str(owner_id))
+        
+    if not allowed:
+        await message.reply_text("⚠️ You do not have permission to run the broadcast command.")
+        return
+        
+    # Get custom message if any, default to "hey there i am active now..."
+    text = "hey there i am active now..."
+    parts = message.text.split(maxsplit=1)
+    if len(parts) > 1:
+        text = parts[1]
+        
+    # 2. Query all tracked chats
+    async with AsyncSessionLocal() as session:
+        stmt = select(TrackedChat)
+        res = await session.execute(stmt)
+        chats = res.scalars().all()
+        
+    if not chats:
+        await message.reply_text("No registered groups/channels to broadcast to.")
+        return
+        
+    status_msg = await message.reply_text(f"📢 Starting broadcast to {len(chats)} chats...")
+    
+    success_count = 0
+    fail_count = 0
+    for chat in chats:
+        try:
+            await client.send_message(chat_id=chat.chat_id, text=text)
+            success_count += 1
+            await asyncio.sleep(0.1)  # Small delay to avoid flood limits
+        except Exception as e:
+            logger.warning(f"Failed to send broadcast to chat {chat.chat_id} ({chat.title}): {e}")
+            fail_count += 1
+            # Optionally remove from database if bot was kicked
+            if any(err in str(e).lower() for err in ["kicked", "peer_id_invalid", "chat_write_forbidden"]):
+                try:
+                    async with AsyncSessionLocal() as session:
+                        await session.execute(
+                            delete(TrackedChat).where(TrackedChat.chat_id == chat.chat_id)
+                        )
+                        await session.commit()
+                except Exception as db_err:
+                    logger.error(f"Failed to remove invalid chat {chat.chat_id}: {db_err}")
+                    
+    await status_msg.edit_text(f"✅ Broadcast complete!\n🟢 Success: {success_count}\n🔴 Failed: {fail_count}")
