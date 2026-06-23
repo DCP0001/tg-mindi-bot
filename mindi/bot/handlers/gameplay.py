@@ -410,9 +410,19 @@ async def check_and_run_ai_turns(game: MindiGame):
                 play_msg += f"\n💥 **Trump Suit Revealed:** `{event['trump_suit']}`!"
                 
             if event["next_state"] == "trick_complete":
+                last_trick = game.tricks_history[-1]
+                plays_text = []
+                winner_card = None
+                for p in last_trick["plays"]:
+                    name = game.player_names[p["seat_index"]]
+                    plays_text.append(f"• **{name}** played `{p['card']}`")
+                    if p["seat_index"] == event["trick_winner"]:
+                        winner_card = p["card"]
+                plays_str = "\n".join(plays_text)
+
                 trick_result = (
-                    f"{play_msg}\n\n"
-                    f"🏆 Trick won by **{event['trick_winner_name']}** with `{ai_card.to_string()}`!\n"
+                    f"🃏 **Trick Cards:**\n{plays_str}\n\n"
+                    f"🏆 Trick won by **{event['trick_winner_name']}** with `{winner_card}`!\n"
                 )
                 trick_result += f"📥 Collected `{sum(Card.from_string(c).value for c in event['collected_cards'])}` Mindis!"
                 
@@ -723,9 +733,19 @@ async def on_play_command_group(client, message):
         play_msg += f"\n💥 **Trump Suit Revealed:** `{event['trump_suit']}`!"
 
     if event["next_state"] == "trick_complete":
+        last_trick = game.tricks_history[-1]
+        plays_text = []
+        winner_card = None
+        for p in last_trick["plays"]:
+            name = game.player_names[p["seat_index"]]
+            plays_text.append(f"• **{name}** played `{p['card']}`")
+            if p["seat_index"] == event["trick_winner"]:
+                winner_card = p["card"]
+        plays_str = "\n".join(plays_text)
+
         trick_result = (
-            f"{play_msg}\n\n"
-            f"🏆 Trick won by **{event['trick_winner_name']}**!\n"
+            f"🃏 **Trick Cards:**\n{plays_str}\n\n"
+            f"🏆 Trick won by **{event['trick_winner_name']}** with `{winner_card}`!\n"
         )
         trick_result += f"📥 Collected `{sum(Card.from_string(c).value for c in event['collected_cards'])}` Mindis!"
         
