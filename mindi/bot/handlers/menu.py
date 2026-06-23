@@ -1,6 +1,7 @@
 import logging
 from pyrogram import filters
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ChatType
 from sqlalchemy import select, desc
 from mindi.bot.bot import bot
 from mindi.database.db import AsyncSessionLocal
@@ -137,3 +138,44 @@ async def on_menu_leaderboard(client, callback_query: CallbackQuery):
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="menu:main")]
         ])
         await callback_query.message.edit_text(text=leaderboard_text, reply_markup=keyboard)
+
+
+@bot.on_message(filters.command("start") & filters.group)
+async def on_start_group_command(client, message: Message):
+    welcome_text = (
+        "👋 **Hello! I am Mindi Bot.**\n\n"
+        "To start a new card game lobby in this group, use the `/new` or `/create` command!\n\n"
+        "If you want to view your profile, rules, or the global leaderboard, please message me in a private chat."
+    )
+    # Safe fallback if client.me is not populated
+    username = client.me.username if (hasattr(client, "me") and client.me) else "lulu_mindi_bot"
+    await message.reply_text(
+        text=welcome_text,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 Message Me Privately", url=f"https://t.me/{username}")]
+        ])
+    )
+
+
+@bot.on_message(filters.command("help"))
+async def on_help_command(client, message: Message):
+    help_text = (
+        "📖 **Mindi Bot Commands Guide**\n\n"
+        "• `/start` - Open the main menu (Private Chat only)\n"
+        "• `/new` or `/create` - Start a new casual card game lobby (Group Chats only)\n"
+        "• `/stop` - Abort the current active game in this group (Group Chats only)\n"
+        "• `/help` - Show this commands guide\n\n"
+        "**How to Play Mindi:**\n"
+        "1. Capture the 10s (Mindis) in card tricks.\n"
+        "2. Team with highest captured Mindis wins the round.\n"
+        "3. Capturing all 4 Mindis results in a **Coat** (Whitewash)!"
+    )
+    if message.chat.type == ChatType.PRIVATE:
+        await message.reply_text(
+            text=help_text,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back to Menu", callback_data="menu:main")]
+            ])
+        )
+    else:
+        await message.reply_text(text=help_text)

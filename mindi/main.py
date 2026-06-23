@@ -25,11 +25,18 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Mindi Bot application services...")
     
     # 1. Initialize PostgreSQL database tables
-    try:
-        await init_db()
-        logger.info("Database schemas initialized successfully.")
-    except Exception as e:
-        logger.error(f"Error initializing database schemas: {e}")
+    import asyncio
+    for attempt in range(1, 6):
+        try:
+            await init_db()
+            logger.info("Database schemas initialized successfully.")
+            break
+        except Exception as e:
+            if attempt == 5:
+                logger.error(f"Error initializing database schemas after 5 attempts: {e}")
+            else:
+                logger.warning(f"Database initialization attempt {attempt} failed, retrying in 2 seconds... ({e})")
+                await asyncio.sleep(2)
         
     # 2. Register handlers and boot Telegram Bot
     try:
