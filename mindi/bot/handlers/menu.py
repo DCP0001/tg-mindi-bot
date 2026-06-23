@@ -76,17 +76,6 @@ async def log_all_messages(client, message: Message):
             logger.error(f"Error tracking chat {message.chat.id}: {e}")
     message.continue_propagation()
 
-@bot.on_channel_post(group=-1)
-async def log_all_channel_posts(client, message: Message):
-    logger.info(f"GLOBAL LOGGER: Received channel post: chat_id={message.chat.id}, text={message.text}")
-    if message.chat.type == ChatType.CHANNEL:
-        try:
-            async with AsyncSessionLocal() as session:
-                await track_chat_id(session, message.chat)
-        except Exception as e:
-            logger.error(f"Error tracking channel {message.chat.id}: {e}")
-    message.continue_propagation()
-
 @bot.on_callback_query(group=-1)
 async def log_all_callbacks(client, callback_query: CallbackQuery):
     logger.info(f"GLOBAL LOGGER: Received callback: data={callback_query.data}, from_user={callback_query.from_user.id}")
@@ -229,7 +218,6 @@ async def is_admin(client, chat_id, user_id) -> bool:
 
 
 @bot.on_message(filters.command("active"))
-@bot.on_channel_post(filters.command("active"))
 async def on_active_broadcast_command(client, message: Message):
     # 1. Permission check
     allowed = False
