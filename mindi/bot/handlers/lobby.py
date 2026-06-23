@@ -67,11 +67,27 @@ async def initialize_and_start_game(match_id: str, players_info: list, mode: str
         try:
             dealer_id = player_ids[dealer_idx]
             dealer_mention = f"[{player_names[dealer_idx]}](tg://user?id={dealer_id})" if dealer_id > 0 else f"**{player_names[dealer_idx]}**"
+            
+            t1_p1 = player_names[0]
+            t1_p2 = player_names[2]
+            t2_p1 = player_names[1]
+            t2_p2 = player_names[3]
+            
+            start_text = (
+                f"🎮 **Mindi Match {match_id} Starting!**\n"
+                f"Mode: `{mode.upper()}` | Trump: `{trump_mode.upper()}`\n"
+                f"Dealer: {dealer_mention}\n\n"
+                f"👥 **Teams & Seats:**\n"
+                f"• **Team 1:** {t1_p1} & {t1_p2}\n"
+                f"• **Team 2:** {t2_p1} & {t2_p2}\n\n"
+                f"*Dealing cards...*"
+            )
+            
             start_msg = await bot.send_message(
                 chat_id=group_chat_id,
-                text=f"🎮 **Mindi Match {match_id} Starting!**\nMode: `{mode.upper()}` | Trump: `{trump_mode.upper()}`\nDealer: {dealer_mention}\n\n*Dealing cards...*"
+                text=start_text
             )
-            game.group_msg_id = start_msg.id
+            # Pin this starting board!
             try:
                 await bot.pin_chat_message(chat_id=group_chat_id, message_id=start_msg.id, disable_notification=True)
             except Exception as pe:
@@ -340,7 +356,7 @@ async def on_start_lobby(client, callback_query: CallbackQuery):
         except Exception:
             pass
         try:
-            await callback_query.message.delete()
+            await callback_query.message.edit_text("🎮 **Game started! Table closed.**")
         except Exception:
             pass
     else:

@@ -189,28 +189,27 @@ async def update_group_game_message(game: MindiGame, trick_result_msg: str = "")
         pass
         
     try:
+        edited = False
         if game.group_msg_id:
             try:
-                await bot.unpin_chat_message(chat_id=game.group_chat_id, message_id=game.group_msg_id)
+                await bot.edit_message_text(
+                    chat_id=game.group_chat_id,
+                    message_id=game.group_msg_id,
+                    text=status_text,
+                    reply_markup=markup
+                )
+                edited = True
             except Exception:
                 pass
-            try:
-                await bot.delete_messages(chat_id=game.group_chat_id, message_ids=game.group_msg_id)
-            except Exception:
-                pass
-        msg = await bot.send_message(
-            chat_id=game.group_chat_id,
-            text=status_text,
-            reply_markup=markup
-        )
-        game.group_msg_id = msg.id
-        await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
-        try:
-            await bot.pin_chat_message(chat_id=game.group_chat_id, message_id=msg.id, disable_notification=True)
-        except Exception as pe:
-            logger.warning(f"Failed to pin active game message: {pe}")
-    except Exception as e:
-        logger.error(f"Failed to send group message: {e}")
+                
+        if not edited:
+            msg = await bot.send_message(
+                chat_id=game.group_chat_id,
+                text=status_text,
+                reply_markup=markup
+            )
+            game.group_msg_id = msg.id
+            await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
 
 async def update_game_ui(game: MindiGame, trick_result_msg: str = ""):
     """Updates both the group game board or all individual player private hand keyboards in DM."""
@@ -418,17 +417,24 @@ async def check_and_run_ai_turns(game: MindiGame):
                 # Clear buttons temporarily
                 if game.group_chat_id:
                     try:
+                        edited = False
                         if game.group_msg_id:
                             try:
-                                await bot.delete_messages(chat_id=game.group_chat_id, message_ids=game.group_msg_id)
+                                await bot.edit_message_text(
+                                    chat_id=game.group_chat_id,
+                                    message_id=game.group_msg_id,
+                                    text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
+                                )
+                                edited = True
                             except Exception:
                                 pass
-                        msg = await bot.send_message(
-                            chat_id=game.group_chat_id,
-                            text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
-                        )
-                        game.group_msg_id = msg.id
-                        await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+                        if not edited:
+                            msg = await bot.send_message(
+                                chat_id=game.group_chat_id,
+                                text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
+                            )
+                            game.group_msg_id = msg.id
+                            await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
                     except Exception:
                         pass
                 else:
@@ -721,17 +727,24 @@ async def on_play_command_group(client, message):
         # Display trick result
         if game.group_chat_id:
             try:
+                edited = False
                 if game.group_msg_id:
                     try:
-                        await bot.delete_messages(chat_id=game.group_chat_id, message_ids=game.group_msg_id)
+                        await bot.edit_message_text(
+                            chat_id=game.group_chat_id,
+                            message_id=game.group_msg_id,
+                            text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
+                        )
+                        edited = True
                     except Exception:
                         pass
-                msg = await bot.send_message(
-                    chat_id=game.group_chat_id,
-                    text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
-                )
-                game.group_msg_id = msg.id
-                await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
+                if not edited:
+                    msg = await bot.send_message(
+                        chat_id=game.group_chat_id,
+                        text=f"📊 **Mindi Match: {game.match_id}**\n\n{trick_result}\n\n*Next trick starting...*"
+                    )
+                    game.group_msg_id = msg.id
+                    await set_cache(f"mindi:game:{game.match_id}", game.to_dict())
             except Exception:
                 pass
         else:
